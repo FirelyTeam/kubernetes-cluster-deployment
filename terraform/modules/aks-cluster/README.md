@@ -1,4 +1,4 @@
-# AKS Module
+# AKS Cluster Module
 
 This module provisions an Azure Kubernetes Service (AKS) cluster, a resource group, a container registry, and a log analytics workspace.
 

@@ -1,6 +1,6 @@
 variable "nginx_chart_version" {
   type        = string
-  default     = "5.1.0"
+  default     = "4.13.0"
   description = "Version of the NGINX ingress Helm chart to deploy."
 }
 
