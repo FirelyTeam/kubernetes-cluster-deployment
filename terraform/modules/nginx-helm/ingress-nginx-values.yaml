@@ -1,0 +1,21 @@
+controller:
+  # config:
+   # use-proxy-protocol: "true"
+
+  service:
+    annotations:
+      service:
+        beta:
+          kubernetes:
+            io/azure-load-balancer-internal: true
+    externalTrafficPolicy: Local
+  metrics:
+    enabled: true
+    service:
+      annotations: 
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "10254"
+
+
+rbac:
+  create: true
