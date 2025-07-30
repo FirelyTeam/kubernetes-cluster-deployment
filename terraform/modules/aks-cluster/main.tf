@@ -27,7 +27,8 @@ resource "azurerm_resource_group" "aks" {
 resource "azurerm_kubernetes_cluster" "aks" {
   lifecycle {
     ignore_changes = [
-      default_node_pool[0].node_count
+      default_node_pool[0].node_count,
+      maintenance_window_auto_upgrade[0].utc_offset
     ]
   }
   name                = var.aks_cluster_name
@@ -45,6 +46,12 @@ resource "azurerm_kubernetes_cluster" "aks" {
     max_count            = var.nodepool_max_node_count
     vm_size              = var.nodepool_node_vm_size
     zones                = var.multi_zones_enabled ? ["1", "2", "3"] : null
+
+    upgrade_settings {
+      drain_timeout_in_minutes      = 0
+      max_surge                    = "10%"
+      node_soak_duration_in_minutes = 0
+    }
   }
 
   identity {
