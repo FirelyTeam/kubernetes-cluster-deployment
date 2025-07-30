@@ -1,24 +1,27 @@
 # Kubernetes Cluster Deployment
 
-This repository contains Terraform scripts to provision a production-ready Kubernetes cluster on Azure (AKS), including:
-- An Azure Kubernetes Service (AKS) cluster
-- NGINX Ingress Controller (via Helm)
-- cert-manager (via Helm) with automated Let's Encrypt integration
+
+This repository provisions a production-ready Kubernetes cluster on Azure (AKS) using Terraform, and deploys NGINX Ingress Controller and cert-manager using Helm via a PowerShell script. Let's Encrypt integration is automated after cert-manager is installed.
+
+**Deployment workflow:**
+- Provision AKS and supporting Azure resources with Terraform
+- Deploy NGINX Ingress Controller and cert-manager using the provided PowerShell script (`helm/deploy-helm-charts.ps1`)
+- Apply extra Kubernetes manifests (e.g., ClusterIssuer) after cert-manager is ready
+
 
 ## Structure
 
 - `terraform/` — Provisions Azure infrastructure (AKS, resource group, log analytics)
   - `modules/aks` — AKS cluster, resource group, and log analytics workspace
-  - `modules/nginx` — NGINX ingress controller (Helm)
-  - `modules/cert-manager` — cert-manager (Helm)
+- `helm/` — PowerShell script and values files for deploying Helm charts (NGINX, cert-manager)
 - `extra-k8s-manifests/` — Applies extra Kubernetes manifests that depend on CRDs (e.g., ClusterIssuer for Let's Encrypt)
+
 
 ## What the scripts do
 
-1. **AKS Module**: Provisions a resource group, Log Analytics workspace, and an AKS cluster with configurable node pool and monitoring (terraform/modules/aks).
-2. **NGINX Module**: Installs the NGINX ingress controller using Helm (terraform/modules/nginx).
-3. **cert-manager Module**: Installs cert-manager using Helm (terraform/modules/cert-manager).
-4. **extra-k8s-manifests/**: Applies CRD-based resources (e.g., ClusterIssuer for Let's Encrypt) after cert-manager is ready.
+1. **AKS Infrastructure**: Provisions a resource group, Log Analytics workspace, and an AKS cluster with configurable node pool and monitoring (`terraform/modules/aks`).
+2. **Helm Deployments**: Installs the NGINX ingress controller and cert-manager using the PowerShell script (`helm/deploy-helm-charts.ps1`).
+3. **Extra Manifests**: Applies CRD-based resources (e.g., ClusterIssuer for Let's Encrypt) after cert-manager is ready (`extra-k8s-manifests/`).
 
 ## Prerequisites
 - [Terraform](https://www.terraform.io/) >= 1.3
@@ -98,7 +101,9 @@ To set the environment variables for every PowerShell session, [create a PowerSh
 
 
 
-### 3. Deploy AKS infrastructure (Stage 1)
+
+### 3. Deploy AKS cluster and resources with Terraform
+Navigate to the `terraform` directory and then run `init` and `apply` to initialize and deploy Terraform:
 
 ```sh
 cd terraform
@@ -107,35 +112,38 @@ terraform init
 terraform apply
 ```
 
-After apply, copy the `aks_kube_configraw` output to a file using the following command:
+After apply, copy the `kube_config_raw` output to a file:
 ```sh
 terraform output -raw kube_config_raw > ../kubeconfig.yaml
 ```
 
+Then, set the `KUBECONFIG` environment variable to point to the generated kubeconfig file:
 
-### 5. Apply extra Kubernetes manifests (Stage 3)
-After cert-manager and other controllers are installed, apply extra manifests (e.g., ClusterIssuer):
-
-```sh
-cd ../extra-k8s-manifests
-terraform init
-terraform apply
+```powershell
+$env:KUBECONFIG = (Resolve-Path "../kubeconfig.yaml").Path
 ```
 
-### 5. Access your cluster
+### 4. Deploy NGINX Ingress Controller and cert-manager with Helm
 
-You can fetch credentials with:
+Prerequisites:
+- [Helm](https://helm.sh/docs/intro/install/) installed
+- [kubectl](https://kubernetes.io/docs/tasks/tools/) configured to access your AKS cluster
+- environment variable `KUBECONFIG` set to the path of your kubeconfig file (as done in the previous step).
 
-```sh
-az aks get-credentials --resource-group <resource-group> --name <aks-cluster-name>
+
+Use the provided PowerShell script to deploy nginx-ingress and cert-manager charts:
+
+```powershell
+cd ../helm
+./deploy-helm-charts.ps1
 ```
 
-**Key points**:
-- The `resource-group` and `aks-cluster-name` should match the values you set for your infra variables.
+You can customize Helm values by editing the YAML files in the `helm/` directory.
+
+As part of the script, the letsencrypt ClusterIssuer is created, which allows cert-manager to issue certificates using Let's Encrypt.
 
 
-
-### 7. Verify deployments
+### 5. Verify deployments
 
 Check that NGINX ingress and cert-manager pods are running:
 
@@ -143,17 +151,10 @@ Check that NGINX ingress and cert-manager pods are running:
 kubectl get pods -A
 ```
 
-## Notes
-- The ClusterIssuer and other CRD-based resources are now managed in `extra-k8s-manifests/` and applied after cert-manager is ready.
-- You can customize Helm values for NGINX and cert-manager by editing the respective variables.
-
 ## Cleanup
 To destroy all resources:
-Go sequentially into `extra-k8s-manifests`, `helm-charts`, and `terraform` directories and run:
+Go to `terraform` directory and run:
 ```sh
 terraform destroy
 ```
-
----
-
-For more details, see the README files in each module directory.
+This will remove the AKS cluster, resource group, and all associated resources.
