@@ -14,14 +14,11 @@ This repository provisions a production-ready Kubernetes cluster on Azure (AKS) 
 - `terraform/` — Provisions Azure infrastructure (AKS, resource group, log analytics)
   - `modules/aks` — AKS cluster, resource group, and log analytics workspace
 - `helm/` — PowerShell script and values files for deploying Helm charts (NGINX, cert-manager)
-- `extra-k8s-manifests/` — Applies extra Kubernetes manifests that depend on CRDs (e.g., ClusterIssuer for Let's Encrypt)
-
 
 ## What the scripts do
 
 1. **AKS Infrastructure**: Provisions a resource group, Log Analytics workspace, and an AKS cluster with configurable node pool and monitoring (`terraform/modules/aks`).
-2. **Helm Deployments**: Installs the NGINX ingress controller and cert-manager using the PowerShell script (`helm/deploy-helm-charts.ps1`).
-3. **Extra Manifests**: Applies CRD-based resources (e.g., ClusterIssuer for Let's Encrypt) after cert-manager is ready (`extra-k8s-manifests/`).
+2. **Helm Deployments**: Installs the NGINX ingress controller and cert-manager using the PowerShell script (`helm/deploy-helm-charts.ps1`) and possibly deploy a letsencrypt certificate issuer.
 
 ## Prerequisites
 - [Terraform](https://www.terraform.io/) >= 1.3
@@ -56,15 +53,15 @@ The following steps show you how:
 
 1. Run `az login` without any parameters and follow the instructions to sign in to Azure.
 ```powershell
-> az login 
+az login 
 ```
 3. To confirm the current Azure subscription, run `az account show`.
 ```powershell
-> az account show
+az account show
 ```
 4. To use a specific Azure subscription, run `az account set`.
 ```powershell
-> az account set --subscription "<subscription_id_or_subscription_name>"
+az account set --subscription "<subscription_id_or_subscription_name>"
 ```
 **Key points**:
 - Replace the `<subscription_id_or_subscription_name>` placeholder with the ID or name of the subscription you want to use. For Firely that would be `FHIR Test`.
@@ -98,8 +95,6 @@ $env:ARM_TENANT_ID="<azure_subscription_tenant_id>"
 $env:ARM_CLIENT_SECRET="<service_principal_password>"
 ```
 To set the environment variables for every PowerShell session, [create a PowerShell profile](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_profiles) and set the environment variables within your profile.
-
-
 
 
 ### 3. Deploy AKS cluster and resources with Terraform
@@ -142,6 +137,8 @@ You can customize Helm values by editing the YAML files in the `helm/` directory
 
 As part of the script, the letsencrypt ClusterIssuer is created, which allows cert-manager to issue certificates using Let's Encrypt.
 
+As part of the output, the script will display the external IP of the NGINX Ingress Controller. You can use this IP to access your applications or to configure DNS records for your domain.
+
 
 ### 5. Verify deployments
 
@@ -150,6 +147,11 @@ Check that NGINX ingress and cert-manager pods are running:
 ```sh
 kubectl get pods -A
 ```
+
+### Deploy Firely FHIR Server
+Once you have the NGINX Ingress Controller and cert-manager running, you can deploy the Firely FHIR Server or any other application by creating appropriate Kubernetes manifests or Helm charts.
+In the case of Firely FHIR Server, you can use the [Firely Server Helm chart](https://github.com/FirelyTeam/Helm.Charts/blob/main/charts/firely-server/README.md) or use the [Azure market place offer](https://azuremarketplace.microsoft.com/en-us/marketplace/apps/firely-nl.firely-nl-firely-server-essentials?tab=Overview), and provide the following values for the parameters:
+![alt text](images/market-place-settings.png).
 
 ## Cleanup
 To destroy all resources:
