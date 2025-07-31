@@ -1,5 +1,5 @@
 Param (
-  [string]$NginxNamespace = "nginx-ingress",
+  [string]$NginxNamespace = "ingress-nginx",
   [string]$NginxChartVersion = "4.13.0",
   [string]$CertManagerNamespace = "cert-manager",
   [string]$CertManagerChartVersion = "1.18.2",
@@ -23,7 +23,7 @@ helm repo add jetstack https://charts.jetstack.io
 helm repo update
 
 Write-Host "Deploying NGINX Ingress Controller..."
-helm upgrade --install nginx-ingress `
+helm upgrade --install ingress-nginx `
     --namespace $NginxNamespace `
     --create-namespace `
     --version $NginxChartVersion `
@@ -33,9 +33,17 @@ helm upgrade --install nginx-ingress `
 
 if ($LASTEXITCODE -ne 0) {
     Write-Error "Failed to deploy NGINX Ingress Controller."
-    Restore-Kubeconfig
     exit $LASTEXITCODE
 }
+
+# Display the external IP of the NGINX Ingress Controller
+$nginxIngressService = kubectl get svc -n $NginxNamespace ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
+if (-not $nginxIngressService) {
+    Write-Error "Failed to retrieve the external IP of the NGINX Ingress Controller."
+    exit 1
+}
+Write-Host "NGINX Ingress Controller external IP: $nginxIngressService"
+
 Write-Host "NGINX Ingress Controller deployed or updated successfully."
 
 Write-Host "Deploying Cert-Manager..."
@@ -51,7 +59,6 @@ helm upgrade --install cert-manager jetstack/cert-manager `
 
 if ($LASTEXITCODE -ne 0) {
     Write-Error "Failed to deploy Cert-Manager."
-    Restore-Kubeconfig
     exit $LASTEXITCODE
 }
 Write-Host "Cert-Manager deployed or updated successfully."
@@ -62,20 +69,19 @@ if (-not $DeployLetsencryptIssuer) {
 else {
     if ($LetsencryptEmail -eq "") {
         Write-Error "Let’s Encrypt email is not set. Please set the LetsencryptEmail parameter to continue."
-        Restore-Kubeconfig
         exit 1
     }
     $issuerYaml = @"
 apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
 metadata:
-  name: letsencrypt-prod
+  name: letsencrypt-issuer
 spec:
   acme:
     server: https://acme-v02.api.letsencrypt.org/directory
     email: $LetsencryptEmail
     privateKeySecretRef:
-      name: letsencrypt-prod
+      name: letsencrypt-key
     solvers:
     - http01:
         ingress:
@@ -89,11 +95,8 @@ spec:
     Remove-Item $issuerFilePath
     if ($kubectlExitCode -ne 0) {
         Write-Error "Failed to deploy Let’s Encrypt ClusterIssuer."
-        Restore-Kubeconfig
         exit $kubectlExitCode
     }
     Write-Host "Let’s Encrypt ClusterIssuer deployed successfully."
 
-# Restore KUBECONFIG at the end
-Restore-Kubeconfig
 }
