@@ -1,6 +1,6 @@
 # AKS Cluster Module
 
-This module provisions an Azure Kubernetes Service (AKS) cluster, a resource group, a container registry, and a log analytics workspace.
+This module provisions an Azure Kubernetes Service (AKS) cluster, a resource group, and a log analytics workspace.
 
 ## Inputs
 - resource_group_name
@@ -15,7 +15,7 @@ This module provisions an Azure Kubernetes Service (AKS) cluster, a resource gro
 
 ## Outputs
 - kube_config
-- kube_admin_config
+- kube_config_raw
 - aks_id
 - aks_name
 - resource_group_name
