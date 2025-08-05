@@ -66,11 +66,17 @@ az account set --subscription "<subscription_id_or_subscription_name>"
 **Key points**:
 - Replace the `<subscription_id_or_subscription_name>` placeholder with the ID or name of the subscription you want to use. For Firely that would be `FHIR Test`.
 
-Automated tools that deploy or use Azure services - such as Terraform - should ideally use restricted permissions via a service principal. If you nevertheless prefer to use your user account, you can skip the next section. In this case, use `az login` to log in and set the subscription ID to ensure Terraform uses the correct subscription:
+Automated tools that deploy or use Azure services - such as Terraform - should ideally use restricted permissions via a service principal. If you nevertheless prefer to use your user account, you can skip the next section. In this case, use `az login` to log in and set the subscription ID to ensure Terraform uses the correct subscription. If using PowerShell, you can set the subscription ID as an environment variable:
 
 ```powershell
 az login
 $env:ARM_SUBSCRIPTION_ID = '<your_subscription_id>'
+```
+If using bash, you can set the subscription ID as follows:
+
+```bash
+az login
+export ARM_SUBSCRIPTION_ID='<your_subscription_id>'
 ```
 
 #### Use a service principal (optional)
@@ -84,7 +90,7 @@ az ad sp create-for-rbac --name <service_principal_name> --role Contributor --sc
 - You can replace the `<service-principal-name>` with a custom name for your environment or omit the parameter entirely. If you omit the parameter, the service principal name is generated based on the current date and time.
 - Upon successful completion, `az ad sp create-for-rbac` displays several values. The appId, password, and tenant values are used in the next step.
 
-Once you have created a service principal, you can specify its credentials to Terraform via environment variables:
+Once you have created a service principal, you can specify its credentials to Terraform via environment variables. If using PowerShell, you can set the environment variables as follows:
 
 ```powershell
 $env:ARM_CLIENT_ID="<service_principal_app_id>"
@@ -93,6 +99,15 @@ $env:ARM_TENANT_ID="<azure_subscription_tenant_id>"
 $env:ARM_CLIENT_SECRET="<service_principal_password>"
 ```
 To set the environment variables for every PowerShell session, [create a PowerShell profile](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_profiles) and set the environment variables within your profile.
+
+If using bash, you can set the environment variables as follows:
+
+```bash
+export ARM_CLIENT_ID="<service_principal_app_id>"
+export ARM_SUBSCRIPTION_ID="<azure_subscription_id>"
+export ARM_TENANT_ID="<azure_subscription_tenant_id>"
+export ARM_CLIENT_SECRET="<service_principal_password>"
+```
 
 
 ### 3. Deploy AKS cluster and resources with Terraform
@@ -115,6 +130,11 @@ Then, set the `KUBECONFIG` environment variable to point to the generated kubeco
 ```powershell
 $env:KUBECONFIG = (Resolve-Path "../kubeconfig.yaml").Path
 ```
+If using bash, you can set the `KUBECONFIG` environment variable as follows:
+
+```bash
+export KUBECONFIG=$(realpath ../kubeconfig.yaml)
+```
 
 ### 4. Deploy NGINX Ingress Controller and cert-manager with Helm
 
@@ -129,6 +149,12 @@ Use the provided PowerShell script to deploy nginx-ingress and cert-manager char
 ```powershell
 cd ../helm
 ./deploy-helm-charts.ps1
+```
+Alternatively, you can run the script in bash:
+
+```bash
+cd ../helm
+./deploy-helm-charts.sh
 ```
 
 You can customize Helm values by editing the YAML files in the `helm/` directory.
