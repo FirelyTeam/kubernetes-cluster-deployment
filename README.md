@@ -66,7 +66,7 @@ az account set --subscription "<subscription_id_or_subscription_name>"
 **Key points**:
 - Replace the `<subscription_id_or_subscription_name>` placeholder with the ID or name of the subscription you want to use. For Firely that would be `FHIR Test`.
 
-Automated tools that deploy or use Azure services — such as Terraform — should ideally use restricted permissions via a service principal. If you prefer to use your user account, you can skip the next section. In this case, use `az login` to log in and set the subscription ID to ensure Terraform uses the correct subscription:
+Automated tools that deploy or use Azure services - such as Terraform - should ideally use restricted permissions via a service principal. If you nevertheless prefer to use your user account, you can skip the next section. In this case, use `az login` to log in and set the subscription ID to ensure Terraform uses the correct subscription:
 
 ```powershell
 az login
